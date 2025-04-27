@@ -23,6 +23,19 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 ---
 
 ## 🛠️ INSTALLATION
-#### H4 Clone the repository:
+####  Clone the repository:
 ```bash
 git clone https://github.com/your-username/NOVA.git
+```
+####  Navigate into the project directory:
+```bash
+cd NOVA
+```
+####  Install the required dependencies:
+```bash
+pip install -r requirements.txt
+```
+####  Run the application:
+```bash
+python main.py
+```
