@@ -7,12 +7,12 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 <h2>DEMO</h2>
 <i>demo pics are added here</i>
 <h2>FEATURES</h2>
-1. AI powered chatbot respond
-2. control system volume (inc/dec)
-3. Adjust laptop brightness(inc/dec)
-4. Open Applications on user demand.
-5. Send Whatsapp Message.
-6. Send Email.
+  1. AI powered chatbot respond
+  2. control system volume (inc/dec)
+  3. Adjust laptop brightness(inc/dec)
+  4. Open Applications on user demand.
+  5. Send Whatsapp Message.
+  6. Send Email.
 <h2>INSTALLATION</h2>
 
 <h2>USAGE</h2>
