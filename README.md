@@ -42,8 +42,8 @@ python main.py
 ## Usage
 - Run `main.py`  to start NOVA.
 - Give voice or text commands like:
-  +"Increase the volume"
-  +"Decrease the brightness"
+  + "Increase the volume"
+  + "Decrease the brightness"
   + "Open Chrome"
   + "Send WhatsApp message to John"
   + "Send an email to my manager"
