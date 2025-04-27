@@ -19,6 +19,11 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 git clone https://github.com/your-username/NOVA.git
 ```
 <h2>USAGE</h2>
+| Tables        | Are           | Cool  |
+| ------------- |:-------------:| -----:|
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
 
 <h2>TECH STACK</h2>
 
