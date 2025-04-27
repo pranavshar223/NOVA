@@ -1,18 +1,18 @@
 # NOVA
 
-## 🚀 Next-Gen Operational Virtual Assistant
+##  Next-Gen Operational Virtual Assistant
 
 NOVA is an advanced AI chatbot that not only provides intelligent text responses but also performs real-world system tasks based on user commands.  
 It can adjust volume and brightness, open applications, send WhatsApp messages, and send emails — offering a seamless virtual assistant experience.
 
----
+---  
 
-## 📸 DEMO
+##  DEMO
 *Demo pics are added here.*
 
 ---
 
-## ✨ FEATURES
+## FEATURES
 - AI-powered chatbot responses
 - Control system volume (increase/decrease)
 - Adjust laptop brightness (increase/decrease)
@@ -22,7 +22,7 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 
 ---
 
-## 🛠️ INSTALLATION
+##  INSTALLATION
 ####  Clone the repository:
 ```bash
 git clone https://github.com/your-username/NOVA.git
@@ -39,3 +39,11 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+## Usage
+- Run `main.py`  to start NOVA.
+- Give voice or text commands like:
+  +"Increase the volume"
+  +"Decrease the brightness"
+  + "Open Chrome"
+  + "Send WhatsApp message to John"
+  + "Send an email to my manager"
