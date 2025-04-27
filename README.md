@@ -23,6 +23,6 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 ---
 
 ## 🛠️ INSTALLATION
-###Clone the repository:
+#### H4 Clone the repository:
 ```bash
 git clone https://github.com/your-username/NOVA.git
