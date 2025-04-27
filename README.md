@@ -25,7 +25,7 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 ##  INSTALLATION
 ####  Clone the repository:
 ```bash
-git clone https://github.com/your-username/NOVA.git
+git clone https://github.com/pranavshar223/NOVA.git
 ```
 ####  Navigate into the project directory:
 ```bash
@@ -37,10 +37,10 @@ pip install -r requirements.txt
 ```
 ####  Run the application:
 ```bash
-python main.py
+python frontend.py
 ```
 ## Usage
-- Run `main.py`  to start NOVA.
+- Run `frontend.py`  to start NOVA.
 - Give voice or text commands like:
   + "Increase the volume"
   + "Decrease the brightness"
