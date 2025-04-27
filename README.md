@@ -13,14 +13,11 @@ It can adjust volume and brightness, open applications, send WhatsApp messages, 
 + Open Applications on user demand.
 + Send Whatsapp Message.
 + Send Email.
-1. First ordered list item
-2. Another item
-⋅⋅* Unordered sub-list. 
-1. Actual numbers don't matter, just that it's a number
-⋅⋅1. Ordered sub-list
-4. And another item.
-<h2>INSTALLATION</h2>
 
+<h2>INSTALLATION</h2>
+```bash
+git clone https://github.com/your-username/NOVA.git
+```
 <h2>USAGE</h2>
 
 <h2>TECH STACK</h2>
