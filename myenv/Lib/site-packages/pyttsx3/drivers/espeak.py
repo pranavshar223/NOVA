@@ -1,15 +1,18 @@
-import os
-import wave
-import platform
 import ctypes
-import time
+import logging
+import os
+import platform
 import subprocess
+import time
+import wave
 from tempfile import NamedTemporaryFile
-if platform.system() == 'Windows':
+
+if platform.system() == "Windows":
     import winsound
 
-from ..voice import Voice
-from . import _espeak, fromUtf8, toUtf8
+from pyttsx3.voice import Voice
+
+from . import _espeak
 
 
 # noinspection PyPep8Naming
@@ -18,32 +21,39 @@ def buildDriver(proxy):
 
 
 # noinspection PyPep8Naming
-class EspeakDriver(object):
+class EspeakDriver:
     _moduleInitialized = False
-    _defaultVoice = ''
+    _defaultVoice = ""
 
     def __init__(self, proxy):
         if not EspeakDriver._moduleInitialized:
             # espeak cannot initialize more than once per process and has
             # issues when terminating from python (assert error on close)
-            # so just keep it alive and init once        
+            # so just keep it alive and init once
             rate = _espeak.Initialize(_espeak.AUDIO_OUTPUT_RETRIEVAL, 1000)
             if rate == -1:
-                raise RuntimeError('could not initialize espeak')
-            EspeakDriver._defaultVoice = 'default'
+                msg = "could not initialize espeak"
+                raise RuntimeError(msg)
+            current_voice = _espeak.GetCurrentVoice()
+            if current_voice and current_voice.contents.name:
+                EspeakDriver._defaultVoice = current_voice.contents.name.decode("utf-8")
+            else:
+                # Fallback to a known default if no voice is set
+                EspeakDriver._defaultVoice = "gmw/en"  # Adjust this as needed
             EspeakDriver._moduleInitialized = True
         self._proxy = proxy
         self._looping = False
         self._stopping = False
         self._speaking = False
         self._text_to_say = None
-        self._data_buffer = b''
+        self._data_buffer = b""
         self._numerise_buffer = []
+        self._save_file = None
 
         _espeak.SetSynthCallback(self._onSynth)
-        self.setProperty('voice', EspeakDriver._defaultVoice)
-        self.setProperty('rate', 200)
-        self.setProperty('volume', 1.0)
+        self.setProperty("voice", EspeakDriver._defaultVoice)
+        self.setProperty("rate", 200)
+        self.setProperty("volume", 1.0)
 
     def numerise(self, data):
         self._numerise_buffer.append(data)
@@ -63,148 +73,191 @@ class EspeakDriver(object):
 
     @staticmethod
     def getProperty(name: str):
-        if name == 'voices':
+        if name == "voices":
             voices = []
             for v in _espeak.ListVoices(None):
-                kwargs = {'id': fromUtf8(v.name), 'name': fromUtf8(v.name)}
+                # Use identifier as the unique ID
+                voice_id = v.identifier.decode(
+                    "utf-8"
+                ).lower()  # Identifier corresponds to the "File" in espeak --voices
+                kwargs = {
+                    "id": voice_id,  # Use "identifier" as the ID
+                    "name": v.name.decode("utf-8"),  # Nice name
+                }
                 if v.languages:
                     try:
                         language_code_bytes = v.languages[1:]
-                        language_code = language_code_bytes.decode('utf-8', errors='ignore')
-                        kwargs['languages'] = [language_code]
-                    except UnicodeDecodeError as e:
-                        kwargs['languages'] = ["Unknown"]
-                    genders = [None, 'male', 'female']
-                kwargs['gender'] = genders[v.gender]
-                kwargs['age'] = v.age or None
+                        language_code = language_code_bytes.decode("utf-8", errors="ignore")
+                        kwargs["languages"] = [language_code]
+                    except UnicodeDecodeError:
+                        kwargs["languages"] = ["Unknown"]
+                genders = [None, "Male", "Female"]
+                kwargs["gender"] = genders[v.gender]
+                kwargs["age"] = v.age or None
                 voices.append(Voice(**kwargs))
             return voices
-        elif name == 'voice':
+        if name == "voice":
             voice = _espeak.GetCurrentVoice()
-            return fromUtf8(voice.contents.name)
-        elif name == 'rate':
+            if voice and voice.contents.name:
+                return voice.contents.identifier.decode("utf-8").lower()
+            return None
+        if name == "rate":
             return _espeak.GetParameter(_espeak.RATE)
-        elif name == 'volume':
+        if name == "volume":
             return _espeak.GetParameter(_espeak.VOLUME) / 100.0
-        elif name == 'pitch':
+        if name == "pitch":
             return _espeak.GetParameter(_espeak.PITCH)
-        else:
-            raise KeyError('unknown property %s' % name)
+        msg = f"unknown property {name}"
+        raise KeyError(msg)
 
     @staticmethod
-    def setProperty(name: str, value):
-        if name == 'voice':
+    def setProperty(name: str, value):  # noqa: C901,PLR0912
+        if name == "voice":
             if value is None:
                 return
             try:
-                utf8Value = toUtf8(value)
-                _espeak.SetVoiceByName(utf8Value)
+                utf8Value = str(value).encode("utf-8")
+                logging.debug(f"Attempting to set voice to: {value}")  # noqa: G004
+                result = _espeak.SetVoiceByName(utf8Value)
+                if result == 0:  # EE_OK is 0
+                    logging.debug(f"Successfully set voice to: {value}")  # noqa: G004
+                elif result == 1:  # EE_BUFFER_FULL
+                    msg = f"SetVoiceByName failed: EE_BUFFER_FULL while setting voice to {value}"
+                    raise ValueError(msg)
+                elif result == 2:  # EE_INTERNAL_ERROR
+                    msg = f"SetVoiceByName failed: EE_INTERNAL_ERROR while setting voice to {value}"
+                    raise ValueError(msg)
+                else:
+                    msg = (
+                        "SetVoiceByName failed with unknown return code "
+                        f"{result} for voice: {value}"
+                    )
+                    raise ValueError(msg)
             except ctypes.ArgumentError as e:
-                raise ValueError(str(e))
-        elif name == 'rate':
+                msg = f"Invalid voice name: {value}, error: {e}"
+                raise ValueError(msg)
+        elif name == "rate":
             try:
                 _espeak.SetParameter(_espeak.RATE, value, 0)
             except ctypes.ArgumentError as e:
                 raise ValueError(str(e))
-        elif name == 'volume':
+        elif name == "volume":
             try:
-                _espeak.SetParameter(
-                    _espeak.VOLUME, int(round(value * 100, 2)), 0)
+                _espeak.SetParameter(_espeak.VOLUME, int(round(value * 100, 2)), 0)
             except TypeError as e:
                 raise ValueError(str(e))
-        elif name == 'pitch':
+        elif name == "pitch":
             try:
-                _espeak.SetParameter(
-                    _espeak.PITCH, int(value), 0
-                )
+                _espeak.SetParameter(_espeak.PITCH, int(value), 0)
             except TypeError as e:
                 raise ValueError(str(e))
         else:
-            raise KeyError('unknown property %s' % name)
+            msg = f"unknown property {name}"
+            raise KeyError(msg)
 
     def save_to_file(self, text, filename):
-        code = self.numerise(filename)
-        _espeak.Synth(toUtf8(text), flags=_espeak.ENDPAUSE | _espeak.CHARS_UTF8, user_data=code)
+        """
+        Save the synthesized speech to the specified filename.
+        """
+        self._save_file = filename
+        self._text_to_say = text
 
     def _start_synthesis(self, text):
         self._proxy.setBusy(True)
-        self._proxy.notify('started-utterance')
+        self._proxy.notify("started-utterance")
         self._speaking = True
-        self._data_buffer = b''  # Ensure buffer is cleared before starting
+        self._data_buffer = b""  # Ensure buffer is cleared before starting
         try:
-            _espeak.Synth(toUtf8(text), flags=_espeak.ENDPAUSE | _espeak.CHARS_UTF8)
+            _espeak.Synth(str(text).encode("utf-8"), flags=_espeak.ENDPAUSE | _espeak.CHARS_UTF8)
         except Exception as e:
             self._proxy.setBusy(False)
-            self._proxy.notify('error', exception=e)
+            self._proxy.notify("error", exception=e)
             raise
 
+    def _onSynth(self, wav, numsamples, events):  # noqa: C901,PLR0912,PLR0915
+        """
+        TODO: Refactor this function because it is too complex by several measures.
+        """
+        if not self._speaking:
+            return 0
 
-    def _onSynth(self, wav, numsamples, events):
+        # Process each event in the current callback
         i = 0
         while True:
             event = events[i]
             if event.type == _espeak.EVENT_LIST_TERMINATED:
                 break
             if event.type == _espeak.EVENT_WORD:
-                
                 if self._text_to_say:
-                    start_index = event.text_position-1
+                    start_index = event.text_position - 1
                     end_index = start_index + event.length
                     word = self._text_to_say[start_index:end_index]
                 else:
                     word = "Unknown"
+                self._proxy.notify(
+                    "started-word",
+                    name=word,
+                    location=event.text_position,
+                    length=event.length,
+                )
 
-                self._proxy.notify('started-word', name=word, location=event.text_position, length=event.length)
-
-            elif event.type == _espeak.EVENT_END:
-                stream = NamedTemporaryFile(delete=False, suffix='.wav')
-    
-                try:
-                    with wave.open(stream, 'wb') as f:
-                        f.setnchannels(1)
-                        f.setsampwidth(2)
-                        f.setframerate(22050.0)
-                        f.writeframes(self._data_buffer)
-                    self._data_buffer = b''
-    
-                    if event.user_data:
-                        os.system(f'ffmpeg -y -i {stream.name} {self.decode_numeric(event.user_data)} -loglevel quiet')
-                    else:
-                        if platform.system() == 'Darwin':  # macOS
-                            try:
-                                result = subprocess.run(['afplay', stream.name], check=True, capture_output=True, text=True)
-                            except subprocess.CalledProcessError as e:
-                                raise RuntimeError(f"[EspeakDriver._onSynth] Mac afplay failed with error: {e}")
-                        elif platform.system() == 'Linux':
-                            os.system(f'aplay {stream.name} -q')
-                        elif platform.system() == 'Windows':
-                            winsound.PlaySound(stream.name, winsound.SND_FILENAME)  # Blocking playback
-    
-                except Exception as e:
-                    raise RuntimeError(f"Error during playback: {e}")
-    
-                finally:
+            elif event.type == _espeak.EVENT_MSG_TERMINATED:
+                # Final event indicating synthesis completion
+                if self._save_file:
                     try:
-                        stream.close()  # Ensure the file is closed
-                        os.remove(stream.name)
+                        with wave.open(self._save_file, "wb") as f:
+                            f.setnchannels(1)  # Mono
+                            f.setsampwidth(2)  # 16-bit samples
+                            f.setframerate(22050)  # 22,050 Hz sample rate
+                            f.writeframes(self._data_buffer)
+                        print(f"Audio saved to {self._save_file}")
                     except Exception as e:
-                        raise RuntimeError(f"Error deleting temporary WAV file: {e}")
-    
-                self._proxy.notify('finished-utterance', completed=True)
+                        msg = f"Error saving WAV file: {e}"
+                        raise RuntimeError(msg)
+                else:
+                    try:
+                        with NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
+                            with wave.open(temp_wav, "wb") as f:
+                                f.setnchannels(1)  # Mono
+                                f.setsampwidth(2)  # 16-bit samples
+                                f.setframerate(22050)  # 22,050 Hz sample rate
+                                f.writeframes(self._data_buffer)
+
+                            temp_wav_name = temp_wav.name
+                            temp_wav.flush()
+
+                        # Playback functionality (for say method)
+                        if platform.system() == "Darwin":  # macOS
+                            subprocess.run(["afplay", temp_wav_name], check=True)
+                        elif platform.system() == "Linux":
+                            os.system(f"aplay {temp_wav_name} -q")
+                        elif platform.system() == "Windows":
+                            winsound.PlaySound(temp_wav_name, winsound.SND_FILENAME)
+
+                        # Remove the file after playback
+                        os.remove(temp_wav_name)  # noqa: PTH107
+                    except Exception as e:
+                        print(f"Playback error: {e}")
+
+                # Clear the buffer and mark as finished
+                self._data_buffer = b""
+                self._speaking = False
+                self._proxy.notify("finished-utterance", completed=True)
                 self._proxy.setBusy(False)
-                self.endLoop()  # End the loop here
-                break  # Exit the loop after handling the termination event
-    
+                self.endLoop()
+                break
+
             i += 1
-    
+
+        # Accumulate audio data if available
         if numsamples > 0:
             self._data_buffer += ctypes.string_at(wav, numsamples * ctypes.sizeof(ctypes.c_short))
+
         return 0
 
-    
     def endLoop(self):
         self._looping = False
-    
+
     def startLoop(self):
         first = True
         self._looping = True
@@ -218,14 +271,14 @@ class EspeakDriver(object):
                     self._start_synthesis(self._text_to_say)
             self.iterate()
             time.sleep(0.01)
-    
+
     def iterate(self):
         if not self._looping:
             return
         if self._stopping:
             _espeak.Cancel()
             self._stopping = False
-            self._proxy.notify('finished-utterance', completed=False)
+            self._proxy.notify("finished-utterance", completed=False)
             self._proxy.setBusy(False)
             self.endLoop()
 

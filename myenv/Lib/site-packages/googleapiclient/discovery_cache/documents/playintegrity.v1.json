@@ -166,14 +166,43 @@
 "scopes": [
 "https://www.googleapis.com/auth/playintegrity"
 ]
+},
+"decodePcIntegrityToken": {
+"description": "Decodes the PC integrity token and returns the PC token payload.",
+"flatPath": "v1/{v1Id}:decodePcIntegrityToken",
+"httpMethod": "POST",
+"id": "playintegrity.decodePcIntegrityToken",
+"parameterOrder": [
+"packageName"
+],
+"parameters": {
+"packageName": {
+"description": "Package name of the app the attached integrity token belongs to.",
+"location": "path",
+"pattern": "^[^/]+$",
+"required": true,
+"type": "string"
+}
+},
+"path": "v1/{+packageName}:decodePcIntegrityToken",
+"request": {
+"$ref": "DecodePcIntegrityTokenRequest"
+},
+"response": {
+"$ref": "DecodePcIntegrityTokenResponse"
+},
+"scopes": [
+"https://www.googleapis.com/auth/playintegrity"
+]
 }
 }
 }
 },
-"revision": "20241127",
+"revision": "20250828",
 "rootUrl": "https://playintegrity.googleapis.com/",
 "schemas": {
 "AccountActivity": {
+"deprecated": true,
 "description": "(Restricted Access) Contains a signal helping apps differentiating between likely genuine and likely non-genuine user traffic.",
 "id": "AccountActivity",
 "properties": {
@@ -206,6 +235,7 @@
 "properties": {
 "accountActivity": {
 "$ref": "AccountActivity",
+"deprecated": true,
 "description": "(Restricted Access) Details about the account activity for the user in the scope."
 },
 "appLicensingVerdict": {
@@ -218,8 +248,8 @@
 ],
 "enumDescriptions": [
 "Play does not have sufficient information to evaluate licensing details",
-"The app and certificate match the versions distributed by Play.",
-"The certificate or package name does not match Google Play records.",
+"The user has a valid license to use the app.",
+"The user does not have a valid license to use the app.",
 "Licensing details were not evaluated since a necessary requirement was missed. For example DeviceIntegrity did not meet the minimum bar or the application was not a known Play version."
 ],
 "type": "string"
@@ -259,48 +289,6 @@
 "type": "string"
 },
 "type": "array"
-},
-"otherApps": {
-"deprecated": true,
-"description": "Deprecated: this field will be removed, please use apps_detected instead. App access risk verdict related to apps that are not installed by Google Play, and are not preloaded on the system image by the device manufacturer.",
-"enum": [
-"UNKNOWN",
-"UNEVALUATED",
-"NOT_INSTALLED",
-"INSTALLED",
-"CAPTURING",
-"CONTROLLING"
-],
-"enumDescriptions": [
-"Risk type is unknown.",
-"App access risk was not evaluated because a requirement was missed, such as the device not being trusted enough.",
-"No apps under this field are installed on the device. This is only valid for the other apps field.",
-"One or more apps under this field are installed on the device.",
-"Apps under this field are running that could be used to read or capture inputs and outputs of the requesting app, such as screen recording apps.",
-"Apps under this field are running that could be used to control the device and inputs and outputs of the requesting app, such as remote controlling apps."
-],
-"type": "string"
-},
-"playOrSystemApps": {
-"deprecated": true,
-"description": "Deprecated: this field will be removed, please use apps_detected instead. App access risk verdict related to apps that are not installed by the Google Play Store, and are not preloaded on the system image by the device manufacturer.",
-"enum": [
-"UNKNOWN",
-"UNEVALUATED",
-"NOT_INSTALLED",
-"INSTALLED",
-"CAPTURING",
-"CONTROLLING"
-],
-"enumDescriptions": [
-"Risk type is unknown.",
-"App access risk was not evaluated because a requirement was missed, such as the device not being trusted enough.",
-"No apps under this field are installed on the device. This is only valid for the other apps field.",
-"One or more apps under this field are installed on the device.",
-"Apps under this field are running that could be used to read or capture inputs and outputs of the requesting app, such as screen recording apps.",
-"Apps under this field are running that could be used to control the device and inputs and outputs of the requesting app, such as remote controlling apps."
-],
-"type": "string"
 }
 },
 "type": "object"
@@ -361,6 +349,28 @@
 "properties": {
 "tokenPayloadExternal": {
 "$ref": "TokenPayloadExternal",
+"description": "Plain token payload generated from the decoded integrity token."
+}
+},
+"type": "object"
+},
+"DecodePcIntegrityTokenRequest": {
+"description": "Request to decode the PC integrity token.",
+"id": "DecodePcIntegrityTokenRequest",
+"properties": {
+"integrityToken": {
+"description": "Encoded integrity token.",
+"type": "string"
+}
+},
+"type": "object"
+},
+"DecodePcIntegrityTokenResponse": {
+"description": "Response containing the decoded PC integrity payload.",
+"id": "DecodePcIntegrityTokenResponse",
+"properties": {
+"tokenPayloadExternal": {
+"$ref": "PcTokenPayloadExternal",
 "description": "Plain token payload generated from the decoded integrity token."
 }
 },
@@ -483,6 +493,105 @@
 "Play Protect is turned off. Turn on Play Protect."
 ],
 "type": "string"
+}
+},
+"type": "object"
+},
+"PcAccountDetails": {
+"description": "Contains the account information such as the licensing status for the user in the scope.",
+"id": "PcAccountDetails",
+"properties": {
+"appLicensingVerdict": {
+"description": "Required. Details about the licensing status of the user for the app in the scope.",
+"enum": [
+"UNKNOWN",
+"LICENSED",
+"UNLICENSED",
+"UNEVALUATED"
+],
+"enumDescriptions": [
+"Play does not have sufficient information to evaluate licensing details",
+"The user has a valid license to use the app.",
+"The user does not have a valid license to use the app.",
+"Licensing details were not evaluated since a necessary requirement was missed."
+],
+"type": "string"
+}
+},
+"type": "object"
+},
+"PcDeviceIntegrity": {
+"description": "Contains the device attestation information.",
+"id": "PcDeviceIntegrity",
+"properties": {
+"deviceRecognitionVerdict": {
+"description": "Details about the integrity of the device the app is running on.",
+"items": {
+"enum": [
+"DEVICE_RECOGNITION_VERDICT_UNSPECIFIED",
+"MEETS_PC_INTEGRITY"
+],
+"enumDescriptions": [
+"Unspecified device integrity.",
+"App is running on Windows Device with Google Desktop Services."
+],
+"type": "string"
+},
+"type": "array"
+}
+},
+"type": "object"
+},
+"PcRequestDetails": {
+"description": "Contains the integrity request information.",
+"id": "PcRequestDetails",
+"properties": {
+"requestHash": {
+"description": "Request hash that was provided in the request.",
+"type": "string"
+},
+"requestPackageName": {
+"description": "Required. Application package name this attestation was requested for. Note: This field makes no guarantees or promises on the caller integrity.",
+"type": "string"
+},
+"requestTime": {
+"description": "Required. Timestamp, of the integrity application request.",
+"format": "google-datetime",
+"type": "string"
+}
+},
+"type": "object"
+},
+"PcTestingDetails": {
+"description": "Contains additional information generated for testing responses.",
+"id": "PcTestingDetails",
+"properties": {
+"isTestingResponse": {
+"description": "Indicates that the information contained in this payload is a testing response that is statically overridden for a tester.",
+"type": "boolean"
+}
+},
+"type": "object"
+},
+"PcTokenPayloadExternal": {
+"description": "Contains PC device attestation details.",
+"id": "PcTokenPayloadExternal",
+"properties": {
+"accountDetails": {
+"$ref": "PcAccountDetails",
+"description": "Details about the account information such as the licensing status."
+},
+"deviceIntegrity": {
+"$ref": "PcDeviceIntegrity",
+"description": "Required. Details about the device integrity."
+},
+"requestDetails": {
+"$ref": "PcRequestDetails",
+"description": "Required. Details about the integrity request."
+},
+"testingDetails": {
+"$ref": "PcTestingDetails",
+"description": "Indicates that this payload is generated for testing purposes and contains any additional data that is linked with testing status."
 }
 },
 "type": "object"
