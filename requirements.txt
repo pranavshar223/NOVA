@@ -1,0 +1,13 @@
+flask
+requests
+pyqt5
+pyttsx3
+SpeechRecognition
+google-generativeai
+wikipedia
+yt-dlp
+screen-brightness-control
+pycaw
+comtypes
+python-dotenv
+pyautogui
