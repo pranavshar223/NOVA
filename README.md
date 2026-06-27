@@ -1,8 +1,8 @@
-# NOVA
+# NOVA - Desktop Assistant
 
 ## Next-Gen Operational Virtual Assistant
 
-NOVA is an advanced AI chatbot that not only provides intelligent text responses but also performs real-world system tasks based on user commands. It can adjust volume and brightness, open applications, send WhatsApp messages, and send emails — offering a seamless virtual assistant experience.
+NOVA is an advanced AI Assistant that not only provides intelligent text responses but also performs real-world system tasks based on user commands. It can adjust volume and brightness, open applications, send WhatsApp messages, and send emails — offering a seamless virtual assistant experience.
 
 ---
 
